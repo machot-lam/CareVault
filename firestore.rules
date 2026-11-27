@@ -1,0 +1,444 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Global Hardened Primitives ---
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isNonEmptyString(val, maxLen) {
+      return val is string && val.size() >= 1 && val.size() <= maxLen;
+    }
+
+    function isBoundedString(val, maxLen) {
+      return val is string && val.size() <= maxLen;
+    }
+
+    function isAdmin() {
+      return isVerified() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        request.auth.token.email == 'machotlam@gmail.com'
+      );
+    }
+
+    // --- Validation Blueprints (Pure: no existing() or diff() inside) ---
+
+    function isValidClinician(data) {
+      return data.keys().hasAll([
+          'uid', 'displayName', 'email', 'specialty', 'facility', 'licenseNumber', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'uid', 'displayName', 'email', 'specialty', 'facility', 'licenseNumber', 'createdAt', 'updatedAt'
+        ]) &&
+        isValidId(data.uid) &&
+        isNonEmptyString(data.displayName, 120) &&
+        data.email is string && data.email.size() >= 3 && data.email.size() <= 160 &&
+        isNonEmptyString(data.specialty, 80) &&
+        isNonEmptyString(data.facility, 120) &&
+        isBoundedString(data.licenseNumber, 40) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidPatient(data) {
+      return data.keys().hasAll([
+          'id', 'ownerId', 'mrn', 'firstName', 'lastName', 'dateOfBirth', 'sex', 'bloodType',
+          'phone', 'email', 'address', 'emergencyContactName', 'emergencyContactPhone',
+          'insuranceProvider', 'insuranceMemberId', 'primaryDiagnosis', 'wardOrClinic',
+          'attendingPhysician', 'careStatus', 'allergies', 'notesSummary', 'lastVisitDate',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'id', 'ownerId', 'mrn', 'firstName', 'lastName', 'dateOfBirth', 'sex', 'bloodType',
+          'phone', 'email', 'address', 'emergencyContactName', 'emergencyContactPhone',
+          'insuranceProvider', 'insuranceMemberId', 'primaryDiagnosis', 'wardOrClinic',
+          'attendingPhysician', 'careStatus', 'allergies', 'notesSummary', 'lastVisitDate',
+          'createdAt', 'updatedAt'
+        ]) &&
+        isValidId(data.id) &&
+        isValidId(data.ownerId) &&
+        data.mrn is string && data.mrn.size() >= 3 && data.mrn.size() <= 24 && data.mrn.matches('^[A-Z0-9\\-]+$') &&
+        isNonEmptyString(data.firstName, 80) &&
+        isNonEmptyString(data.lastName, 80) &&
+        data.dateOfBirth is string && data.dateOfBirth.size() == 10 && data.dateOfBirth.matches('^\\d{4}-\\d{2}-\\d{2}$') &&
+        data.sex in ['Female', 'Male', 'Other'] &&
+        data.bloodType in ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Unknown'] &&
+        isNonEmptyString(data.phone, 32) &&
+        isBoundedString(data.email, 160) &&
+        isBoundedString(data.address, 240) &&
+        isBoundedString(data.emergencyContactName, 120) &&
+        isBoundedString(data.emergencyContactPhone, 32) &&
+        isBoundedString(data.insuranceProvider, 100) &&
+        isBoundedString(data.insuranceMemberId, 60) &&
+        isBoundedString(data.primaryDiagnosis, 160) &&
+        isBoundedString(data.wardOrClinic, 80) &&
+        isBoundedString(data.attendingPhysician, 120) &&
+        data.careStatus in ['Active', 'Inpatient', 'Critical', 'Discharged'] &&
+        data.allergies is list && data.allergies.size() <= 15 &&
+        (data.allergies.size() == 0 || (data.allergies[0] is string && data.allergies[0].size() >= 1 && data.allergies[0].size() <= 80)) &&
+        isBoundedString(data.notesSummary, 1000) &&
+        isBoundedString(data.lastVisitDate, 24) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidEncounter(data) {
+      return data.keys().hasAll([
+          'id', 'ownerId', 'patientId', 'patientName', 'patientMrn', 'encounterType',
+          'status', 'scheduledAt', 'chiefComplaint', 'subjectiveNote', 'objectiveNote',
+          'assessmentNote', 'planNote', 'clinicianName', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'id', 'ownerId', 'patientId', 'patientName', 'patientMrn', 'encounterType',
+          'status', 'scheduledAt', 'chiefComplaint', 'subjectiveNote', 'objectiveNote',
+          'assessmentNote', 'planNote', 'clinicianName', 'createdAt', 'updatedAt'
+        ]) &&
+        isValidId(data.id) &&
+        isValidId(data.ownerId) &&
+        isValidId(data.patientId) &&
+        isNonEmptyString(data.patientName, 160) &&
+        data.patientMrn is string && data.patientMrn.size() >= 3 && data.patientMrn.size() <= 24 && data.patientMrn.matches('^[A-Z0-9\\-]+$') &&
+        data.encounterType in ['Outpatient Visit', 'Follow-Up', 'Inpatient Round', 'Urgent Triage', 'Telehealth'] &&
+        data.status in ['Scheduled', 'In Progress', 'Completed', 'Cancelled'] &&
+        data.scheduledAt is string && data.scheduledAt.size() >= 10 && data.scheduledAt.size() <= 32 &&
+        isNonEmptyString(data.chiefComplaint, 240) &&
+        isBoundedString(data.subjectiveNote, 2000) &&
+        isBoundedString(data.objectiveNote, 2000) &&
+        isBoundedString(data.assessmentNote, 2000) &&
+        isBoundedString(data.planNote, 2000) &&
+        isNonEmptyString(data.clinicianName, 120) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidVital(data) {
+      return data.keys().hasAll([
+          'id', 'ownerId', 'patientId', 'recordedAt', 'systolicBp', 'diastolicBp',
+          'heartRate', 'respiratoryRate', 'temperatureC', 'spo2', 'weightKg',
+          'recordedBy', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'id', 'ownerId', 'patientId', 'recordedAt', 'systolicBp', 'diastolicBp',
+          'heartRate', 'respiratoryRate', 'temperatureC', 'spo2', 'weightKg',
+          'recordedBy', 'createdAt', 'updatedAt'
+        ]) &&
+        isValidId(data.id) &&
+        isValidId(data.ownerId) &&
+        isValidId(data.patientId) &&
+        data.recordedAt is string && data.recordedAt.size() >= 10 && data.recordedAt.size() <= 32 &&
+        data.systolicBp is number && data.systolicBp >= 40 && data.systolicBp <= 280 &&
+        data.diastolicBp is number && data.diastolicBp >= 20 && data.diastolicBp <= 180 &&
+        data.heartRate is number && data.heartRate >= 20 && data.heartRate <= 240 &&
+        data.respiratoryRate is number && data.respiratoryRate >= 4 && data.respiratoryRate <= 60 &&
+        data.temperatureC is number && data.temperatureC >= 30 && data.temperatureC <= 44 &&
+        data.spo2 is number && data.spo2 >= 50 && data.spo2 <= 100 &&
+        data.weightKg is number && data.weightKg >= 1 && data.weightKg <= 400 &&
+        isNonEmptyString(data.recordedBy, 120) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidMedication(data) {
+      return data.keys().hasAll([
+          'id', 'ownerId', 'patientId', 'drugName', 'dosage', 'frequency',
+          'route', 'startDate', 'status', 'prescribedBy', 'instructions',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'id', 'ownerId', 'patientId', 'drugName', 'dosage', 'frequency',
+          'route', 'startDate', 'status', 'prescribedBy', 'instructions',
+          'createdAt', 'updatedAt'
+        ]) &&
+        isValidId(data.id) &&
+        isValidId(data.ownerId) &&
+        isValidId(data.patientId) &&
+        isNonEmptyString(data.drugName, 140) &&
+        isNonEmptyString(data.dosage, 60) &&
+        isNonEmptyString(data.frequency, 80) &&
+        data.route in ['Oral', 'IV', 'IM', 'Subcutaneous', 'Topical', 'Inhaled'] &&
+        data.startDate is string && data.startDate.size() == 10 && data.startDate.matches('^\\d{4}-\\d{2}-\\d{2}$') &&
+        data.status in ['Active', 'On Hold', 'Completed', 'Discontinued'] &&
+        isNonEmptyString(data.prescribedBy, 120) &&
+        isBoundedString(data.instructions, 400) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidLabOrder(data) {
+      return data.keys().hasAll([
+          'id', 'ownerId', 'patientId', 'patientName', 'testName', 'category',
+          'priority', 'status', 'orderedAt', 'resultValue', 'referenceRange',
+          'flag', 'orderedBy', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'id', 'ownerId', 'patientId', 'patientName', 'testName', 'category',
+          'priority', 'status', 'orderedAt', 'resultValue', 'referenceRange',
+          'flag', 'orderedBy', 'createdAt', 'updatedAt'
+        ]) &&
+        isValidId(data.id) &&
+        isValidId(data.ownerId) &&
+        isValidId(data.patientId) &&
+        isNonEmptyString(data.patientName, 160) &&
+        isNonEmptyString(data.testName, 140) &&
+        data.category in ['Hematology', 'Metabolic', 'Lipid Panel', 'Endocrine', 'Microbiology', 'Imaging'] &&
+        data.priority in ['Routine', 'Urgent', 'STAT'] &&
+        data.status in ['Ordered', 'In Lab', 'Resulted', 'Cancelled'] &&
+        data.orderedAt is string && data.orderedAt.size() >= 10 && data.orderedAt.size() <= 32 &&
+        isBoundedString(data.resultValue, 160) &&
+        isBoundedString(data.referenceRange, 100) &&
+        data.flag in ['Normal', 'Abnormal', 'Critical', 'Pending'] &&
+        isNonEmptyString(data.orderedBy, 120) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // --- Collection Rules ---
+
+    // 1. Clinicians (PII isolated to owner)
+    match /clinicians/{clinicianId} {
+      allow get: if isVerified() && isValidId(clinicianId) && (clinicianId == request.auth.uid || isAdmin());
+      allow list: if isVerified() && resource.data.uid == request.auth.uid;
+      allow create: if isVerified() &&
+        isValidId(clinicianId) &&
+        isValidClinician(incoming()) &&
+        clinicianId == request.auth.uid &&
+        incoming().uid == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isVerified() &&
+        isValidId(clinicianId) &&
+        isValidClinician(incoming()) &&
+        incoming().uid == existing().uid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        (
+          isAdmin() ||
+          (
+            clinicianId == request.auth.uid &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'email', 'specialty', 'facility', 'licenseNumber', 'updatedAt'])
+          )
+        );
+      allow delete: if isVerified() && isValidId(clinicianId) && isAdmin();
+    }
+
+    // 2. Patients (Master clinical records)
+    match /patients/{patientId} {
+      allow get: if isVerified() && isValidId(patientId) && (existing().ownerId == request.auth.uid || isAdmin());
+      allow list: if isVerified() && resource.data.ownerId == request.auth.uid;
+      allow create: if isVerified() &&
+        isValidId(patientId) &&
+        isValidPatient(incoming()) &&
+        incoming().id == patientId &&
+        incoming().ownerId == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isVerified() &&
+        isValidId(patientId) &&
+        isValidPatient(incoming()) &&
+        incoming().id == existing().id &&
+        incoming().ownerId == existing().ownerId &&
+        incoming().mrn == existing().mrn &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        (
+          isAdmin() ||
+          (
+            existing().ownerId == request.auth.uid &&
+            (
+              // Action: Update Demographics & Contact
+              incoming().diff(existing()).affectedKeys().hasOnly([
+                'firstName', 'lastName', 'dateOfBirth', 'sex', 'bloodType', 'phone', 'email',
+                'address', 'emergencyContactName', 'emergencyContactPhone', 'insuranceProvider',
+                'insuranceMemberId', 'updatedAt'
+              ]) ||
+              // Action: Update Clinical Summary & Care Status
+              incoming().diff(existing()).affectedKeys().hasOnly([
+                'primaryDiagnosis', 'wardOrClinic', 'attendingPhysician', 'careStatus',
+                'allergies', 'notesSummary', 'lastVisitDate', 'updatedAt'
+              ]) ||
+              // Action: Full Patient Record Edit
+              incoming().diff(existing()).affectedKeys().hasOnly([
+                'firstName', 'lastName', 'dateOfBirth', 'sex', 'bloodType', 'phone', 'email',
+                'address', 'emergencyContactName', 'emergencyContactPhone', 'insuranceProvider',
+                'insuranceMemberId', 'primaryDiagnosis', 'wardOrClinic', 'attendingPhysician',
+                'careStatus', 'allergies', 'notesSummary', 'lastVisitDate', 'updatedAt'
+              ])
+            )
+          )
+        );
+      allow delete: if isVerified() && isValidId(patientId) && (existing().ownerId == request.auth.uid || isAdmin());
+    }
+
+    // 3. Encounters (SOAP Notes & Visits)
+    match /encounters/{encounterId} {
+      allow get: if isVerified() && isValidId(encounterId) && (existing().ownerId == request.auth.uid || isAdmin());
+      allow list: if isVerified() && resource.data.ownerId == request.auth.uid;
+      allow create: if isVerified() &&
+        isValidId(encounterId) &&
+        isValidEncounter(incoming()) &&
+        incoming().id == encounterId &&
+        incoming().ownerId == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        exists(/databases/$(database)/documents/patients/$(incoming().patientId)) &&
+        get(/databases/$(database)/documents/patients/$(incoming().patientId)).data.ownerId == request.auth.uid;
+      allow update: if isVerified() &&
+        isValidId(encounterId) &&
+        isValidEncounter(incoming()) &&
+        incoming().id == existing().id &&
+        incoming().ownerId == existing().ownerId &&
+        incoming().patientId == existing().patientId &&
+        incoming().patientMrn == existing().patientMrn &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        (
+          isAdmin() ||
+          (
+            existing().ownerId == request.auth.uid &&
+            !(existing().status in ['Completed', 'Cancelled']) &&
+            (
+              // Action: Update SOAP Clinical Notes
+              incoming().diff(existing()).affectedKeys().hasOnly([
+                'subjectiveNote', 'objectiveNote', 'assessmentNote', 'planNote', 'chiefComplaint', 'updatedAt'
+              ]) ||
+              // Action: Transition Encounter Status & Sign Off
+              incoming().diff(existing()).affectedKeys().hasOnly([
+                'status', 'subjectiveNote', 'objectiveNote', 'assessmentNote', 'planNote', 'updatedAt'
+              ])
+            )
+          )
+        );
+      allow delete: if isVerified() && isValidId(encounterId) && (existing().ownerId == request.auth.uid || isAdmin());
+    }
+
+    // 4. Vitals (Time-Series Physiological Observations)
+    match /vitals/{vitalId} {
+      allow get: if isVerified() && isValidId(vitalId) && (existing().ownerId == request.auth.uid || isAdmin());
+      allow list: if isVerified() && resource.data.ownerId == request.auth.uid;
+      allow create: if isVerified() &&
+        isValidId(vitalId) &&
+        isValidVital(incoming()) &&
+        incoming().id == vitalId &&
+        incoming().ownerId == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        exists(/databases/$(database)/documents/patients/$(incoming().patientId)) &&
+        get(/databases/$(database)/documents/patients/$(incoming().patientId)).data.ownerId == request.auth.uid;
+      allow update: if isVerified() &&
+        isValidId(vitalId) &&
+        isValidVital(incoming()) &&
+        incoming().id == existing().id &&
+        incoming().ownerId == existing().ownerId &&
+        incoming().patientId == existing().patientId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        (
+          isAdmin() ||
+          (
+            existing().ownerId == request.auth.uid &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'systolicBp', 'diastolicBp', 'heartRate', 'respiratoryRate', 'temperatureC', 'spo2', 'weightKg', 'updatedAt'
+            ])
+          )
+        );
+      allow delete: if isVerified() && isValidId(vitalId) && (existing().ownerId == request.auth.uid || isAdmin());
+    }
+
+    // 5. Medications (Prescriptions)
+    match /medications/{medicationId} {
+      allow get: if isVerified() && isValidId(medicationId) && (existing().ownerId == request.auth.uid || isAdmin());
+      allow list: if isVerified() && resource.data.ownerId == request.auth.uid;
+      allow create: if isVerified() &&
+        isValidId(medicationId) &&
+        isValidMedication(incoming()) &&
+        incoming().id == medicationId &&
+        incoming().ownerId == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        exists(/databases/$(database)/documents/patients/$(incoming().patientId)) &&
+        get(/databases/$(database)/documents/patients/$(incoming().patientId)).data.ownerId == request.auth.uid;
+      allow update: if isVerified() &&
+        isValidId(medicationId) &&
+        isValidMedication(incoming()) &&
+        incoming().id == existing().id &&
+        incoming().ownerId == existing().ownerId &&
+        incoming().patientId == existing().patientId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        (
+          isAdmin() ||
+          (
+            existing().ownerId == request.auth.uid &&
+            !(existing().status in ['Completed', 'Discontinued']) &&
+            (
+              // Action: Adjust Dosage or Instructions
+              incoming().diff(existing()).affectedKeys().hasOnly(['dosage', 'frequency', 'instructions', 'updatedAt']) ||
+              // Action: Update Medication Status
+              incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])
+            )
+          )
+        );
+      allow delete: if isVerified() && isValidId(medicationId) && (existing().ownerId == request.auth.uid || isAdmin());
+    }
+
+    // 6. Lab Orders & Results
+    match /labOrders/{labId} {
+      allow get: if isVerified() && isValidId(labId) && (existing().ownerId == request.auth.uid || isAdmin());
+      allow list: if isVerified() && resource.data.ownerId == request.auth.uid;
+      allow create: if isVerified() &&
+        isValidId(labId) &&
+        isValidLabOrder(incoming()) &&
+        incoming().id == labId &&
+        incoming().ownerId == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        exists(/databases/$(database)/documents/patients/$(incoming().patientId)) &&
+        get(/databases/$(database)/documents/patients/$(incoming().patientId)).data.ownerId == request.auth.uid;
+      allow update: if isVerified() &&
+        isValidId(labId) &&
+        isValidLabOrder(incoming()) &&
+        incoming().id == existing().id &&
+        incoming().ownerId == existing().ownerId &&
+        incoming().patientId == existing().patientId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        (
+          isAdmin() ||
+          (
+            existing().ownerId == request.auth.uid &&
+            !(existing().status in ['Resulted', 'Cancelled']) &&
+            (
+              // Action: Advance Lab Workflow Status
+              incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']) ||
+              // Action: Enter Lab Result & Flag
+              incoming().diff(existing()).affectedKeys().hasOnly(['status', 'resultValue', 'referenceRange', 'flag', 'updatedAt'])
+            )
+          )
+        );
+      allow delete: if isVerified() && isValidId(labId) && (existing().ownerId == request.auth.uid || isAdmin());
+    }
+  }
+}

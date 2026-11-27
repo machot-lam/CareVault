@@ -1,0 +1,6 @@
+{
+  "name": "CareVault",
+  "description": "Patient Information Management System for structured clinical records, vitals monitoring, SOAP encounters, medications, and diagnostic lab workflows.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

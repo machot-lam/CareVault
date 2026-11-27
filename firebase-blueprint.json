@@ -1,0 +1,576 @@
+{
+  "entities": {
+    "Clinician": {
+      "title": "Clinician",
+      "description": "Authenticated clinician profile and clinical facility metadata (PII isolated to owner).",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "email": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 160
+        },
+        "specialty": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "facility": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "licenseNumber": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "displayName", "email", "specialty", "facility", "licenseNumber", "createdAt", "updatedAt"]
+    },
+    "Patient": {
+      "title": "Patient",
+      "description": "Master patient demographic and clinical summary record owned by a clinician.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "mrn": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 24,
+          "pattern": "^[A-Z0-9\\-]+$"
+        },
+        "firstName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "lastName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "dateOfBirth": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 10,
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "sex": {
+          "type": "string",
+          "enum": ["Female", "Male", "Other"]
+        },
+        "bloodType": {
+          "type": "string",
+          "enum": ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "Unknown"]
+        },
+        "phone": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "address": {
+          "type": "string",
+          "maxLength": 240
+        },
+        "emergencyContactName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "emergencyContactPhone": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "insuranceProvider": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "insuranceMemberId": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "primaryDiagnosis": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "wardOrClinic": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "attendingPhysician": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "careStatus": {
+          "type": "string",
+          "enum": ["Active", "Inpatient", "Critical", "Discharged"]
+        },
+        "allergies": {
+          "type": "array"
+        },
+        "notesSummary": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "lastVisitDate": {
+          "type": "string",
+          "maxLength": 24
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "ownerId",
+        "mrn",
+        "firstName",
+        "lastName",
+        "dateOfBirth",
+        "sex",
+        "bloodType",
+        "phone",
+        "email",
+        "address",
+        "emergencyContactName",
+        "emergencyContactPhone",
+        "insuranceProvider",
+        "insuranceMemberId",
+        "primaryDiagnosis",
+        "wardOrClinic",
+        "attendingPhysician",
+        "careStatus",
+        "allergies",
+        "notesSummary",
+        "lastVisitDate",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Encounter": {
+      "title": "Encounter",
+      "description": "Clinical visit or encounter with structured SOAP documentation.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "patientId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "patientName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "patientMrn": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 24,
+          "pattern": "^[A-Z0-9\\-]+$"
+        },
+        "encounterType": {
+          "type": "string",
+          "enum": ["Outpatient Visit", "Follow-Up", "Inpatient Round", "Urgent Triage", "Telehealth"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Scheduled", "In Progress", "Completed", "Cancelled"]
+        },
+        "scheduledAt": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 32
+        },
+        "chiefComplaint": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 240
+        },
+        "subjectiveNote": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "objectiveNote": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "assessmentNote": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "planNote": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "clinicianName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "ownerId",
+        "patientId",
+        "patientName",
+        "patientMrn",
+        "encounterType",
+        "status",
+        "scheduledAt",
+        "chiefComplaint",
+        "subjectiveNote",
+        "objectiveNote",
+        "assessmentNote",
+        "planNote",
+        "clinicianName",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "VitalReading": {
+      "title": "VitalReading",
+      "description": "Time-series physiological vital signs observation for a patient.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "patientId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "recordedAt": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 32
+        },
+        "systolicBp": {
+          "type": "number"
+        },
+        "diastolicBp": {
+          "type": "number"
+        },
+        "heartRate": {
+          "type": "number"
+        },
+        "respiratoryRate": {
+          "type": "number"
+        },
+        "temperatureC": {
+          "type": "number"
+        },
+        "spo2": {
+          "type": "number"
+        },
+        "weightKg": {
+          "type": "number"
+        },
+        "recordedBy": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "ownerId",
+        "patientId",
+        "recordedAt",
+        "systolicBp",
+        "diastolicBp",
+        "heartRate",
+        "respiratoryRate",
+        "temperatureC",
+        "spo2",
+        "weightKg",
+        "recordedBy",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Medication": {
+      "title": "Medication",
+      "description": "Patient medication prescription and administration status.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "patientId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "drugName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 140
+        },
+        "dosage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "frequency": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "route": {
+          "type": "string",
+          "enum": ["Oral", "IV", "IM", "Subcutaneous", "Topical", "Inhaled"]
+        },
+        "startDate": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 10,
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Active", "On Hold", "Completed", "Discontinued"]
+        },
+        "prescribedBy": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "instructions": {
+          "type": "string",
+          "maxLength": 400
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "ownerId",
+        "patientId",
+        "drugName",
+        "dosage",
+        "frequency",
+        "route",
+        "startDate",
+        "status",
+        "prescribedBy",
+        "instructions",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "LabOrder": {
+      "title": "LabOrder",
+      "description": "Diagnostic laboratory order and resulted clinical values.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "patientId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "patientName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "testName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 140
+        },
+        "category": {
+          "type": "string",
+          "enum": ["Hematology", "Metabolic", "Lipid Panel", "Endocrine", "Microbiology", "Imaging"]
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["Routine", "Urgent", "STAT"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Ordered", "In Lab", "Resulted", "Cancelled"]
+        },
+        "orderedAt": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 32
+        },
+        "resultValue": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "referenceRange": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "flag": {
+          "type": "string",
+          "enum": ["Normal", "Abnormal", "Critical", "Pending"]
+        },
+        "orderedBy": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "ownerId",
+        "patientId",
+        "patientName",
+        "testName",
+        "category",
+        "priority",
+        "status",
+        "orderedAt",
+        "resultValue",
+        "referenceRange",
+        "flag",
+        "orderedBy",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/clinicians/{clinicianId}": {
+      "schema": { "$ref": "#/entities/Clinician" },
+      "description": "Clinician private profile and workspace metadata."
+    },
+    "/patients/{patientId}": {
+      "schema": { "$ref": "#/entities/Patient" },
+      "description": "Master patient demographic and clinical summary records."
+    },
+    "/encounters/{encounterId}": {
+      "schema": { "$ref": "#/entities/Encounter" },
+      "description": "Clinical encounters and structured SOAP notes linked to patients."
+    },
+    "/vitals/{vitalId}": {
+      "schema": { "$ref": "#/entities/VitalReading" },
+      "description": "Time-series vital sign observations linked to patients."
+    },
+    "/medications/{medicationId}": {
+      "schema": { "$ref": "#/entities/Medication" },
+      "description": "Active and historical medication prescriptions linked to patients."
+    },
+    "/labOrders/{labId}": {
+      "schema": { "$ref": "#/entities/LabOrder" },
+      "description": "Diagnostic laboratory orders and results linked to patients."
+    }
+  }
+}
